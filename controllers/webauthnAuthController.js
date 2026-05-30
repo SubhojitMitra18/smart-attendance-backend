@@ -17,6 +17,8 @@ exports.authOptions = async (req, res) => {
   try {
     const { rollNumber } = req.body;
 
+    console.log(rollNumber)
+
     const student = await Student.findOne({ rollNumber });
 
     if (!student) {
