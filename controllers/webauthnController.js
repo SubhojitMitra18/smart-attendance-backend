@@ -11,8 +11,8 @@ const {
 
 // CONFIG
 const rpName = "College Attendance System";
-const rpID = "localhost";
-const origin = "http://localhost:5173";
+const rpID = "smart-attendance-frontend-bice.vercel.app/";
+const origin = "https://smart-attendance-frontend-bice.vercel.app/";
 
 
 // ================================
