@@ -12,7 +12,12 @@ const app = express();
 
 connectDB();
 
-app.use(cors());
+app.use(cors(
+  {
+    origin:'https://smart-attendance-frontend-bice.vercel.app',
+    credentials:true,
+  }
+));
 app.use(express.json());
 
 app.get("/", (req, res) => {
