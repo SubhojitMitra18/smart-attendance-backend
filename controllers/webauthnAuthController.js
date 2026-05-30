@@ -4,14 +4,15 @@ const {
 } = require("@simplewebauthn/server");
 
 const Student = require("../models/Student");
-const AttendanceSession = require("../models/AttendanceSession");
 
-// CONFIG (IMPORTANT)
+// CONFIG
 const rpID = "smart-attendance-frontend-bice.vercel.app";
 const origin = "https://smart-attendance-frontend-bice.vercel.app";
 
 
-// STEP 1: GET AUTH OPTIONS (FINGERPRINT PROMPT)
+// ===============================
+// STEP 1: GET AUTH OPTIONS
+// ===============================
 exports.authOptions = async (req, res) => {
   try {
     const { rollNumber } = req.body;
@@ -22,8 +23,10 @@ exports.authOptions = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    if (!student.credentialID) {
-      return res.status(400).json({ message: "Fingerprint not registered" });
+    if (!student.credentialID || !student.credentialPublicKey) {
+      return res.status(400).json({
+        message: "Fingerprint not registered",
+      });
     }
 
     const options = await generateAuthenticationOptions({
@@ -36,20 +39,23 @@ exports.authOptions = async (req, res) => {
       userVerification: "required",
     });
 
+    // store challenge
     student.currentChallenge = options.challenge;
     await student.save();
 
-    res.json(options);
+    return res.json(options);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 
 
-// STEP 2: VERIFY AUTH + RETURN STUDENT IDENTITY
+// ===============================
+// STEP 2: VERIFY AUTH
+// ===============================
 exports.authVerify = async (req, res) => {
   try {
-    const { rollNumber, credential, latitude, longitude } = req.body;
+    const { rollNumber, credential } = req.body;
 
     const student = await Student.findOne({ rollNumber });
 
@@ -57,41 +63,47 @@ exports.authVerify = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    // VERIFY FINGERPRINT
-    const verification = await verifyAuthenticationResponse({
-  response: credential,
+    if (!student.currentChallenge) {
+      return res.status(400).json({
+        message: "Session expired. Try again.",
+      });
+    }
 
-  expectedChallenge: student.currentChallenge,
-  expectedOrigin: origin,
-  expectedRPID: rpID,
-
-  authenticator: {
-    credentialID: student.credentialID,
-
-    // 🔥 FIX HERE (IMPORTANT)
-    credentialPublicKey: Buffer.from(
+    // IMPORTANT: SAFE BUFFER CONVERSION
+    const credentialPublicKey = Buffer.from(
       student.credentialPublicKey,
       "base64"
-    ),
+    );
 
-    counter: student.counter || 0,
-  },
-});
+    const verification = await verifyAuthenticationResponse({
+      response: credential,
+
+      expectedChallenge: student.currentChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+
+      authenticator: {
+        credentialID: student.credentialID,
+        credentialPublicKey,
+        counter: student.counter ?? 0,
+      },
+    });
+
     if (!verification.verified) {
       return res.status(400).json({
         message: "Fingerprint verification failed",
       });
     }
 
-    // update counter
-    student.counter = verification.authenticationInfo.newCounter;
+    // UPDATE COUNTER SAFELY
+    student.counter = verification.authenticationInfo?.newCounter ?? student.counter ?? 0;
+
+    // CLEAR CHALLENGE
     student.currentChallenge = null;
+
     await student.save();
 
-    // pass student info to next middleware (attendance flow)
-    req.student = student;
-
-    res.json({
+    return res.json({
       message: "Authentication successful",
       studentId: student._id,
       rollNumber: student.rollNumber,
@@ -100,6 +112,7 @@ exports.authVerify = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("WEBAUTHN ERROR:", error);
+    return res.status(500).json({ message: error.message });
   }
 };
