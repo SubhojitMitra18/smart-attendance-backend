@@ -28,8 +28,8 @@ const attendanceSchema = new mongoose.Schema({
     required: true,
   },
 
-  latitude: Number,
-  longitude: Number,
+  // latitude: Number,
+  // longitude: Number,
 
   date: {
     type: String, // YYYY-MM-DD (important for daily limit)
