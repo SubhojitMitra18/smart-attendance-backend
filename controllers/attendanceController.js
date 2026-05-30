@@ -2,8 +2,9 @@ const Student = require("../models/Student");
 const Attendance = require("../models/Attendance");
 const AttendanceSession = require("../models/AttendanceSession");
 
-function calculateDistance(lat1, lon1, lat2, lon2) {
 
+// distance helper
+function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371e3;
 
   const φ1 = lat1 * Math.PI / 180;
@@ -14,31 +15,45 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
   const a =
     Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) *
-    Math.cos(φ2) *
-    Math.sin(Δλ / 2) *
-    Math.sin(Δλ / 2);
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
 
-  const c = 2 * Math.atan2(
-    Math.sqrt(a),
-    Math.sqrt(1 - a)
-  );
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c;
 }
+
+
+// ==========================
+// MARK ATTENDANCE
+// ==========================
 exports.markAttendance = async (req, res) => {
   try {
-    const { studentId, latitude, longitude } = req.body;
+    const {
+      rollNumber,
+      department,
+      year,
+      latitude,
+      longitude,
+    } = req.body;
 
-    const student = await Student.findById(studentId);
+    // STEP 1: Find student
+    const student = await Student.findOne({
+      rollNumber,
+      department,
+      year,
+    });
 
     if (!student) {
-      return res.status(404).json({ message: "Student not found" });
+      return res.status(404).json({
+        message: "Student not found",
+      });
     }
 
+    // STEP 2: Active session check
     const session = await AttendanceSession.findOne({
-      department: student.department,
-      year: student.year,
+      department,
+      year,
       active: true,
       endTime: { $gt: new Date() },
     });
@@ -49,7 +64,7 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    // GEO CHECK
+    // STEP 3: Geo-fencing
     const collegeLat = 22.5726;
     const collegeLng = 88.3639;
 
@@ -66,18 +81,21 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    // DUPLICATE CHECK
+    // STEP 4: DAILY LIMIT CHECK (ANTI-PROXY CORE)
+    const today = new Date().toISOString().split("T")[0];
+
     const alreadyMarked = await Attendance.findOne({
       studentId: student._id,
-      sessionId: session._id,
+      date: today,
     });
 
     if (alreadyMarked) {
       return res.status(400).json({
-        message: "Attendance already marked",
+        message: "Attendance already marked for today",
       });
     }
 
+    // STEP 5: CREATE ATTENDANCE
     await Attendance.create({
       studentId: student._id,
       sessionId: session._id,
@@ -86,13 +104,17 @@ exports.markAttendance = async (req, res) => {
       year: student.year,
       latitude,
       longitude,
+      date: today,
     });
 
-    res.status(201).json({
-      message: "Attendance Marked Successfully",
+    return res.status(201).json({
+      message: "Attendance marked successfully",
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(error);
+    return res.status(500).json({
+      message: error.message,
+    });
   }
 };

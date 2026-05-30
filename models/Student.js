@@ -22,26 +22,10 @@ const studentSchema = new mongoose.Schema({
     required: true,
   },
 
-  // WebAuthn credentials
-  credentialID: {
-    type: String,
-    default: null,
-  },
-
-  credentialPublicKey: {
-    type: String,
-    default: null,
-  },
-
-  counter: {
-    type: Number,
-    default: 0,
-  },
-
-  // temporary challenge for registration
-  currentChallenge: {
-    type: String,
-    default: null,
+  // optional future use (NOT required now)
+  isActive: {
+    type: Boolean,
+    default: true,
   },
 });
 
