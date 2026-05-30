@@ -59,20 +59,24 @@ exports.authVerify = async (req, res) => {
 
     // VERIFY FINGERPRINT
     const verification = await verifyAuthenticationResponse({
-      response: credential,
+  response: credential,
 
-      expectedChallenge: student.currentChallenge,
+  expectedChallenge: student.currentChallenge,
+  expectedOrigin: origin,
+  expectedRPID: rpID,
 
-      expectedOrigin: origin,
-      expectedRPID: rpID,
+  authenticator: {
+    credentialID: student.credentialID,
 
-      authenticator: {
-        credentialID: student.credentialID,
-        credentialPublicKey: student.credentialPublicKey,
-        counter: student.counter,
-      },
-    });
+    // 🔥 FIX HERE (IMPORTANT)
+    credentialPublicKey: Buffer.from(
+      student.credentialPublicKey,
+      "base64"
+    ),
 
+    counter: student.counter || 0,
+  },
+});
     if (!verification.verified) {
       return res.status(400).json({
         message: "Fingerprint verification failed",
