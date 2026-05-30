@@ -21,9 +21,10 @@ const origin = "https://smart-attendance-frontend-bice.vercel.app";
 exports.registerOptions = async (req, res) => {
   try {
     const { rollNumber } = req.body;
-
+    
+    console.log(rollNumber)
     const student = await Student.findOne({ rollNumber });
-
+    console.log(student)
     if (!student) {
       return res.status(404).json({
         message: "Student not found",
@@ -56,6 +57,8 @@ exports.registerOptions = async (req, res) => {
       },
     });
 
+    console.log(options)
+
     // store challenge in DB
     student.currentChallenge = options.challenge;
     await student.save();
@@ -77,8 +80,10 @@ exports.verifyRegistration = async (req, res) => {
   try {
     const { rollNumber, credential } = req.body;
 
+    console.log(credential)
     const student = await Student.findOne({ rollNumber });
 
+    console.log(student)
     if (!student) {
       return res.status(404).json({
         message: "Student not found",
@@ -92,6 +97,8 @@ exports.verifyRegistration = async (req, res) => {
       expectedOrigin: origin,
       expectedRPID: rpID,
     });
+
+    console.log(verification)
 
     if (!verification.verified) {
       return res.status(400).json({

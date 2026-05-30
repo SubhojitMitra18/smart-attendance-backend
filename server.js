@@ -5,6 +5,8 @@ const studentRoutes = require("./routes/studentRoutes");
 const sessionRoutes = require("./routes/sessionRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
 const wthnRoutes = require("./routes/webauthnRoutes");
+const webauthnAuthRoutes = require("./routes/webauthnAuthRoutes");
+
 
 const connectDB = require("./config/db");
 
@@ -29,6 +31,8 @@ app.use("/api/students", studentRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/webauthn", wthnRoutes);
+
+app.use("/api/webauthnAuth", webauthnAuthRoutes);
 
 const PORT = 5000;
 
