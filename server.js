@@ -31,8 +31,7 @@ app.use("/api/students", studentRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/webauthn", wthnRoutes);
-
-app.use("/api/webauthnAuth", webauthnAuthRoutes);
+app.use("/api/webauthn", webauthnAuthRoutes);
 
 const PORT = 5000;
 
